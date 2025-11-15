@@ -404,9 +404,13 @@
     </footer>
 
     <script>
-        if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js");
-  }
+        
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log('Service Worker registrado'))
+    .catch(error => console.log('Error:', error));
+}
+    
         // CONSTANTES Y CONFIGURACIÓN DEL JUEGO
         const BOARD_SIZE = 5;
         const TILE_VALUES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
