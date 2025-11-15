@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Connect</title>
+    <style>
+        :root {
+            --primary-color: #1a1a2e;
+            --secondary-color: #16213e;
+            --accent-color: #0f3460;
+            --highlight-color: #e94560;
+            --text-color: #ffffff;
+            --tile-bg: #0d1b2a;
+            --tile-border: #1b263b;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(15, 52, 96, 0.7);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            color: var(--text-color);
+            font-size: 2rem;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .score-container, .best-score-container, .time-container {
+            background-color: rgba(15, 52, 96, 0.7);
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            flex: 1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .score-label, .best-score-label, .time-label {
+            font-size: 0.85rem;
+            color: #b0b0b0;
+            margin-bottom: 5px;
+        }
+
+        .score-value, .best-score-value, .time-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--highlight-color);
+        }
+
+        .selection-preview {
+            background-color: rgba(15, 52, 96, 0.7);
+            padding: 10px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .selection-text {
+            font-size: 0.9rem;
+            color: #b0b0b0;
+            margin-bottom: 5px;
+        }
+
+        .selection-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--highlight-color);
+        }
+
+        .difficulty-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .difficulty-btn {
+            flex: 1;
+            max-width: 120px;
+            background-color: rgba(15, 52, 96, 0.7);
+            color: var(--text-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: var(--border-radius);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .difficulty-btn.active {
+            background-color: var(--highlight-color);
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+            background-color: rgba(13, 27, 42, 0.8);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 20px;
+            aspect-ratio: 1 / 1;
+            touch-action: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .tile {
+            background-color: var(--tile-bg);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.4rem;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid;
+            color: #333;
+        }
+
+        .tile.selected {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 3px var(--highlight-color);
+        }
+
+        .tile.connected {
+            background-color: var(--highlight-color);
+            color: white;
+        }
+
+        .tile.path {
+            position: relative;
+        }
+
+        .tile.path::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(233, 69, 96, 0.3);
+            border-radius: var(--border-radius);
+            z-index: 1;
+        }
+
+        .tile.empty {
+            background-color: rgba(13, 27, 42, 0.5);
+            box-shadow: none;
+            cursor: default;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .tile.breaking {
+            animation: breakAnimation 0.5s forwards;
+        }
+
+        @keyframes breakAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .tile.falling {
+            animation: fallAnimation 0.3s ease-out;
+        }
+
+        @keyframes fallAnimation {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(0); }
+        }
+
+        .tile.new {
+            animation: appearAnimation 0.3s ease-out;
+        }
+
+        @keyframes appearAnimation {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .connection-line {
+            position: absolute;
+            background-color: var(--highlight-color);
+            transform-origin: 0 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .game-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 15px;
+            border: none;
+            border-radius: var(--border-radius);
+            background-color: rgba(15, 52, 96, 0.7);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--box-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 140px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background-color: rgba(66, 66, 66, 0.7);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            color: #888;
+        }
+
+        .btn-undo {
+            background-color: rgba(15, 52, 96, 0.9);
+        }
+
+        .btn-break3 {
+            background-color: rgba(233, 69, 96, 0.8);
+        }
+
+        .btn-break6 {
+            background-color: rgba(106, 27, 154, 0.8);
+        }
+
+        .btn-restart {
+            background-color: rgba(46, 125, 50, 0.8);
+        }
+
+        .badge {
+            background-color: var(--highlight-color);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+
+        .message {
+            text-align: center;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: var(--border-radius);
+            background-color: rgba(233, 69, 96, 0.9);
+            color: white;
+            font-weight: bold;
+            display: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .message.show {
+            display: block;
+            animation: fadeInOut 3s forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.8rem;
+            color: #b0b0b0;
+        }
+
+        /* Colores pastel para los diferentes valores de fichas */
+        .tile-2 { background-color: #FFEAA7; border-color: #FDCB6E; }
+        .tile-4 { background-color: #81ECEC; border-color: #00CEC9; }
+        .tile-8 { background-color: #FAB1A0; border-color: #E17055; }
+        .tile-16 { background-color: #D8BFD8; border-color: #A683A6; }
+        .tile-32 { background-color: #BDE0FE; border-color: #7FB3F7; }
+        .tile-64 { background-color: #FFC8DD; border-color: #FF85A1; }
+        .tile-128 { background-color: #CAFFBF; border-color: #9AE66E; }
+        .tile-256 { background-color: #FFD6A5; border-color: #FFB347; }
+        .tile-512 { background-color: #BDB2FF; border-color: #9D8DFF; }
+        .tile-1024 { background-color: #FFADAD; border-color: #FF6B6B; }
+        .tile-2048 { background-color: #A0C4FF; border-color: #7BA6F7; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Number Connect</h1>
+    </header>
+
+    <div class="game-info">
+        <div class="score-container">
+            <div class="score-label">PUNTUACIÓN</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="best-score-container">
+            <div class="best-score-label">MEJOR PUNTUACIÓN</div>
+            <div class="best-score-value" id="best-score">0</div>
+        </div>
+        <div class="time-container">
+            <div class="time-label">TODO EL TIEMPO</div>
+            <div class="time-value" id="time-value">315K</div>
+        </div>
+    </div>
+
+    <div class="selection-preview" id="selection-preview">
+        <div class="selection-text">SELECCIÓN ACTUAL</div>
+        <div class="selection-value" id="selection-value">-</div>
+    </div>
+
+    <div class="difficulty-selector">
+        <button class="difficulty-btn active" id="easy-btn" data-difficulty="easy">FÁCIL</button>
+        <button class="difficulty-btn" id="medium-btn" data-difficulty="medium">MEDIO</button>
+        <button class="difficulty-btn" id="hard-btn" data-difficulty="hard">DIFÍCIL</button>
+    </div>
+
+    <div class="game-board" id="game-board">
+        <!-- El tablero se genera dinámicamente con JavaScript -->
+    </div>
+
+    <div class="game-controls">
+        <button class="btn-undo" id="undo-btn">Deshacer <span class="badge" id="undo-count">3</span></button>
+        <button class="btn-break3" id="break3-btn">Romper 3 <span class="badge" id="break3-count">5</span></button>
+        <button class="btn-break6" id="break6-btn">Romper 6 <span class="badge" id="break6-count">3</span></button>
+        <button class="btn-restart" id="restart-btn">Reiniciar</button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <footer>
+        <p>Conecta fichas iguales o dobles/mitades para fusionarlas</p>
+    </footer>
+
+    <script>
+        if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
+  }
+        // CONSTANTES Y CONFIGURACIÓN DEL JUEGO
+        const BOARD_SIZE = 5;
+        const TILE_VALUES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+        const DIFFICULTY_PROBABILITIES = {
+            easy: 0.5,
+            medium: 0.25,
+            hard: 0.1
+        };
+        const MAX_UNDO_USES = 3;
+        const MAX_BREAK3_USES = 5;
+        const MAX_BREAK6_USES = 3;
+
+        // ESTADO DEL JUEGO
+        let gameState = {
+            board: [],
+            score: 0,
+            bestScore: 0,
+            difficulty: 'easy',
+            selectedTiles: [],
+            undoStack: [],
+            undoCount: MAX_UNDO_USES,
+            break3Count: MAX_BREAK3_USES,
+            break6Count: MAX_BREAK6_USES,
+            gameOver: false,
+            isBreak3Active: false,
+            break3Selection: [],
+            startTime: Date.now(),
+            gameTime: 0,
+            connectionPath: []
+        };
+
+        // ELEMENTOS DEL DOM
+        const gameBoard = document.getElementById('game-board');
+        const scoreElement = document.getElementById('score');
+        const bestScoreElement = document.getElementById('best-score');
+        const timeElement = document.getElementById('time-value');
+        const selectionPreview = document.getElementById('selection-preview');
+        const selectionValue = document.getElementById('selection-value');
+        const undoButton = document.getElementById('undo-btn');
+        const undoCountElement = document.getElementById('undo-count');
+        const break3Button = document.getElementById('break3-btn');
+        const break3CountElement = document.getElementById('break3-count');
+        const break6Button = document.getElementById('break6-btn');
+        const break6CountElement = document.getElementById('break6-count');
+        const restartButton = document.getElementById('restart-btn');
+        const messageElement = document.getElementById('message');
+        const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+
+        // INICIALIZACIÓN DEL JUEGO
+        function initGame() {
+            loadGameState();
+            createBoard();
+            renderBoard();
+            updateUI();
+            setupEventListeners();
+            startGameTimer();
+            
+            // Verificar si hay movimientos posibles al inicio
+            if (!hasMoves()) {
+                showMessage("¡No hay movimientos posibles! Usa 'Romper 3' para continuar.");
+                break3Button.disabled = false;
+            }
+        }
+
+        // CREACIÓN DEL TABLERO
+        function createBoard() {
+            gameBoard.innerHTML = '';
+            gameBoard.style.gridTemplateColumns = `repeat(${BOARD_SIZE}, 1fr)`;
+            gameBoard.style.gridTemplateRows = `repeat(${BOARD_SIZE}, 1fr)`;
+
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile empty';
+                    tile.dataset.row = row;
+                    tile.dataset.col = col;
+                    gameBoard.appendChild(tile);
+                }
+            }
+
+            // Si no hay un estado guardado, inicializar el tablero con fichas
+            if (gameState.board.length === 0) {
+                initializeBoard();
+            }
+        }
+
+        // INICIALIZACIÓN DEL TABLERO CON FICHAS
+        function initializeBoard() {
+            gameState.board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+            
+            // Llenar el tablero con fichas iniciales (valores bajos)
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    // Mayor probabilidad de valores bajos al inicio
+                    const random = Math.random();
+                    if (random < 0.6) {
+                        gameState.board[row][col] = 2;
+                    } else if (random < 0.9) {
+                        gameState.board[row][col] = 4;
+                    } else {
+                        gameState.board[row][col] = 8;
+                    }
+                }
+            }
+            
+            // Guardar el estado inicial
+            saveState();
+        }
+
+        // GENERACIÓN DE FICHAS CON PROBABILIDADES SEGÚN DIFICULTAD
+        function generateTile() {
+            const probability = DIFFICULTY_PROBABILITIES[gameState.difficulty];
+            const neighboursMap = getNeighboursMap();
+            
+            // Con probabilidad p, elegir una ficha conectable
+            if (Math.random() < probability) {
+                const connectableTiles = getConnectableTiles(neighboursMap);
+                if (connectableTiles.length > 0) {
+                    return connectableTiles[Math.floor(Math.random() * connectableTiles.length)];
+                }
+            }
+            
+            // En otro caso, elegir una ficha aleatoria con distribución que favorece valores bajos
+            const random = Math.random();
+            if (random < 0.5) {
+                return 2;
+            } else if (random < 0.8) {
+                return 4;
+            } else if (random < 0.95) {
+                return 8;
+            } else {
+                // Solo ocasionalmente valores más altos
+                const highValues = [16, 32, 64];
+                return highValues[Math.floor(Math.random() * highValues.length)];
+            }
+        }
+
+        // OBTENER MAPA DE VECINOS PARA DETERMINAR FICHAS CONECTABLES
+        function getNeighboursMap() {
+            const neighboursMap = {};
+            
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const tileValue = gameState.board[row][col];
+                    if (tileValue === 0) continue;
+                    
+                    // Obtener todos los vecinos (ortogonales y diagonales)
+                    const neighbours = [];
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            
+                            const newRow = row + dr;
+                            const newCol = col + dc;
+                            
+                            if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
+                                const neighbourValue = gameState.board[newRow][newCol];
+                                if (neighbourValue !== 0) {
+                                    neighbours.push(neighbourValue);
+                                }
+                            }
+                        }
+                    }
+                    
+                    neighboursMap[`${row},${col}`] = neighbours;
+                }
+            }
+            
+            return neighboursMap;
+        }
+
+        // OBTENER FICHAS QUE SERÍAN CONECTABLES CON ALGUNA EXISTENTE
+        function getConnectableTiles(neighboursMap) {
+            const connectableTiles = [];
+            
+            for (const tileValue of TILE_VALUES) {
+                // Verificar si esta ficha sería conectable con algún vecino existente
+                for (const position in neighboursMap) {
+                    const neighbours = neighboursMap[position];
+                    for (const neighbour of neighbours) {
+                        if (canConnect(tileValue, neighbour)) {
+                            connectableTiles.push(tileValue);
+                            break;
+                        }
+                    }
+                    if (connectableTiles.includes(tileValue)) break;
+                }
+            }
+            
+            return connectableTiles.length > 0 ? connectableTiles : [2, 4, 8];
+        }
+
+        // VERIFICAR SI DOS FICHAS PUEDEN CONECTARSE
+        function canConnect(tileA, tileB) {
+            // Solo se pueden conectar si son iguales
+            return tileA === tileB;
+        }
+
+        // VERIFICAR SI SE PUEDE AÑADIR UNA FICHA A LA SELECCIÓN ACTUAL
+        function canAddToSelection(currentSelection, newTileValue) {
+            if (currentSelection.length === 0) return true;
+            
+            // Si ya hay al menos 2 fichas iguales, permitir añadir dobles/mitades
+            if (currentSelection.length >= 2) {
+                const firstValue = currentSelection[0].value;
+                // Verificar si todas las fichas seleccionadas son iguales
+                const allEqual = currentSelection.every(tile => tile.value === firstValue);
+                
+                if (allEqual) {
+                    // Permitir conectar con el doble o la mitad
+                    return newTileValue === firstValue * 2 || newTileValue === firstValue / 2;
+                }
+            }
+            
+            // Por defecto, solo permitir fichas iguales
+            return newTileValue === currentSelection[0].value;
+        }
+
+        // CALCULAR EL VALOR FINAL DE LA SELECCIÓN
+        function calculateFinalValue(selection) {
+            if (selection.length === 0) return 0;
+            
+            const baseValue = selection[0].value;
+            
+            // Si todas las fichas son iguales, el valor final es baseValue * 2^(n-1)
+            const allEqual = selection.every(tile => tile.value === baseValue);
+            
+            if (allEqual) {
+                return baseValue * Math.pow(2, selection.length - 1);
+            } else {
+                // Si hay una mezcla, encontrar el patrón
+                // Por simplicidad, asumimos que sigue una progresión de dobles/mitades
+                let current = baseValue;
+                for (let i = 1; i < selection.length; i++) {
+                    if (selection[i].value === current * 2) {
+                        current = current * 2;
+                    } else if (selection[i].value === current / 2) {
+                        current = current / 2;
+                    }
+                }
+                return current;
+            }
+        }
+
+        // DIBUJAR LÍNEAS DE CONEXIÓN
+        function drawConnectionLines() {
+            // Eliminar líneas anteriores
+            document.querySelectorAll('.connection-line').forEach(line => line.remove());
+            
+            if (gameState.connectionPath.length < 2) return;
+            
+            const boardRect = gameBoard.getBoundingClientRect();
+            const tileSize = boardRect.width / BOARD_SIZE;
+            
+            for (let i = 0; i < gameState.connectionPath.length - 1; i++) {
+                const current = gameState.connectionPath[i];
+                const next = gameState.connectionPath[i + 1];
+                
+                const currentX = (current.col + 0.5) * tileSize;
+                const currentY = (current.row + 0.5) * tileSize;
+                const nextX = (next.col + 0.5) * tileSize;
+                const nextY = (next.row + 0.5) * tileSize;
+                
+                const distance = Math.sqrt(Math.pow(nextX - currentX, 2) + Math.pow(nextY - currentY, 2));
+                const angle = Math.atan2(nextY - currentY, nextX - currentX) * 180 / Math.PI;
+                
+                const line = document.createElement('div');
+                line.className = 'connection-line';
+                line.style.width = `${distance}px`;
+                line.style.height = '4px';
+                line.style.left = `${currentX}px`;
+                line.style.top = `${currentY}px`;
+                line.style.transform = `rotate(${angle}deg)`;
+                
+                gameBoard.appendChild(line);
+            }
+        }
+
+        // RENDERIZADO DEL TABLERO
+        function renderBoard() {
+            // Limpiar clases de ruta
+            document.querySelectorAll('.tile.path').forEach(tile => {
+                tile.classList.remove('path');
+            });
+            
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const tileValue = gameState.board[row][col];
+                    const tileElement = document.querySelector(`.tile[data-row="${row}"][data-col="${col}"]`);
+                    
+                    if (tileValue === 0) {
+                        tileElement.className = 'tile empty';
+                        tileElement.textContent = '';
+                    } else {
+                        tileElement.className = `tile tile-${tileValue}`;
+                        tileElement.textContent = tileValue;
+                        
+                        // Marcar si está en el camino de conexión
+                        if (gameState.connectionPath.some(tile => tile.row === row && tile.col === col)) {
+                            tileElement.classList.add('path');
+                        }
+                        
+                        // Marcar si está seleccionada
+                        if (gameState.selectedTiles.some(tile => tile.row === row && tile.col === col)) {
+                            tileElement.classList.add('selected');
+                        } else {
+                            tileElement.classList.remove('selected');
+                        }
+                        
+                        // Marcar si está en modo romper3
+                        if (gameState.isBreak3Active && 
+                            gameState.break3Selection.some(tile => tile.row === row && tile.col === col)) {
+                            tileElement.classList.add('connected');
+                        } else {
+                            tileElement.classList.remove('connected');
+                        }
+                    }
+                }
+            }
+            
+            // Dibujar líneas de conexión
+            drawConnectionLines();
+            
+            // Actualizar vista previa de selección
+            updateSelectionPreview();
+        }
+
+        // ACTUALIZAR VISTA PREVIA DE SELECCIÓN
+        function updateSelectionPreview() {
+            if (gameState.selectedTiles.length === 0) {
+                selectionValue.textContent = '-';
+            } else {
+                const finalValue = calculateFinalValue(gameState.selectedTiles);
+                selectionValue.textContent = `${gameState.selectedTiles.map(t => t.value).join(' + ')} = ${finalValue}`;
+            }
+        }
+
+        // ACTUALIZACIÓN DE LA INTERFAZ DE USUARIO
+        function updateUI() {
+            scoreElement.textContent = gameState.score;
+            bestScoreElement.textContent = gameState.bestScore;
+            undoCountElement.textContent = gameState.undoCount;
+            break3CountElement.textContent = gameState.break3Count;
+            break6CountElement.textContent = gameState.break6Count;
+            
+            // Actualizar estado de botones
+            undoButton.disabled = gameState.undoCount === 0 || gameState.undoStack.length === 0;
+            break3Button.disabled = gameState.break3Count === 0 || !gameState.gameOver;
+            break6Button.disabled = gameState.break6Count === 0;
+            
+            // Actualizar botones de dificultad
+            difficultyButtons.forEach(btn => {
+                if (btn.dataset.difficulty === gameState.difficulty) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // INICIAR TEMPORIZADOR DEL JUEGO
+        function startGameTimer() {
+            setInterval(() => {
+                gameState.gameTime = Date.now() - gameState.startTime;
+                // Formatear el tiempo para mostrar (en este caso mantenemos el valor fijo como en la imagen)
+                // En una implementación real, calcularíamos minutos y segundos
+            }, 1000);
+        }
+
+        // CONFIGURACIÓN DE EVENT LISTENERS
+        function setupEventListeners() {
+            // Eventos de toque/click en fichas
+            gameBoard.addEventListener('click', handleTileClick);
+            gameBoard.addEventListener('touchstart', handleTileTouch, { passive: false });
+            
+            // Eventos de botones
+            undoButton.addEventListener('click', undo);
+            break3Button.addEventListener('click', useBreak3);
+            break6Button.addEventListener('click', useBreak6);
+            restartButton.addEventListener('click', restartGame);
+            
+            // Eventos de botones de dificultad
+            difficultyButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    changeDifficulty(btn.dataset.difficulty);
+                });
+            });
+        }
+
+        // MANEJO DE CLIC EN FICHAS
+        function handleTileClick(e) {
+            if (gameState.gameOver && !gameState.isBreak3Active) return;
+            
+            const tile = e.target;
+            if (!tile.classList.contains('tile') || tile.classList.contains('empty')) return;
+            
+            const row = parseInt(tile.dataset.row);
+            const col = parseInt(tile.dataset.col);
+            
+            if (gameState.isBreak3Active) {
+                handleBreak3Selection(row, col);
+            } else {
+                handleTileSelection(row, col);
+            }
+        }
+
+        // MANEJO DE TOQUE EN FICHAS (PARA MÓVILES)
+        function handleTileTouch(e) {
+            e.preventDefault();
+            if (gameState.gameOver && !gameState.isBreak3Active) return;
+            
+            const touch = e.touches[0];
+            const tile = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            if (!tile || !tile.classList.contains('tile') || tile.classList.contains('empty')) return;
+            
+            const row = parseInt(tile.dataset.row);
+            const col = parseInt(tile.dataset.col);
+            
+            if (gameState.isBreak3Active) {
+                handleBreak3Selection(row, col);
+            } else {
+                handleTileSelection(row, col);
+            }
+        }
+
+        // MANEJO DE SELECCIÓN DE FICHAS NORMAL
+        function handleTileSelection(row, col) {
+            const tileValue = gameState.board[row][col];
+            
+            // Si no hay fichas seleccionadas, seleccionar esta
+            if (gameState.selectedTiles.length === 0) {
+                gameState.selectedTiles.push({ row, col, value: tileValue });
+                gameState.connectionPath = [{ row, col }];
+                renderBoard();
+                return;
+            }
+            
+            // Verificar si la ficha ya está seleccionada
+            const isAlreadySelected = gameState.selectedTiles.some(tile => 
+                tile.row === row && tile.col === col
+            );
+            
+            if (isAlreadySelected) {
+                // Deseleccionar si es la última seleccionada
+                if (gameState.selectedTiles[gameState.selectedTiles.length - 1].row === row && 
+                    gameState.selectedTiles[gameState.selectedTiles.length - 1].col === col) {
+                    gameState.selectedTiles.pop();
+                    gameState.connectionPath.pop();
+                    renderBoard();
+                }
+                return;
+            }
+            
+            // Verificar si la ficha es adyacente a la última seleccionada
+            const lastSelected = gameState.selectedTiles[gameState.selectedTiles.length - 1];
+            const isAdjacent = Math.abs(lastSelected.row - row) <= 1 && Math.abs(lastSelected.col - col) <= 1;
+            
+            if (!isAdjacent) {
+                showMessage("Solo puedes conectar fichas adyacentes");
+                return;
+            }
+            
+            // Verificar si la ficha puede añadirse a la selección actual
+            if (!canAddToSelection(gameState.selectedTiles, tileValue)) {
+                showMessage("No se puede conectar esta ficha con la selección actual");
+                return;
+            }
+            
+            // Añadir a la selección
+            gameState.selectedTiles.push({ row, col, value: tileValue });
+            gameState.connectionPath.push({ row, col });
+            renderBoard();
+            
+            // Resolver automáticamente si la selección es válida (al menos 2 fichas)
+            if (gameState.selectedTiles.length >= 2) {
+                resolveSelection();
+            }
+        }
+
+        // MANEJO DE SELECCIÓN PARA ROMBER 3
+        function handleBreak3Selection(row, col) {
+            const isAlreadySelected = gameState.break3Selection.some(tile => 
+                tile.row === row && tile.col === col
+            );
+            
+            if (isAlreadySelected) {
+                // Deseleccionar
+                gameState.break3Selection = gameState.break3Selection.filter(
+                    tile => !(tile.row === row && tile.col === col)
+                );
+            } else {
+                // Seleccionar (máximo 3)
+                if (gameState.break3Selection.length < 3) {
+                    gameState.break3Selection.push({ row, col });
+                } else {
+                    showMessage("Ya has seleccionado 3 fichas");
+                }
+            }
+            
+            renderBoard();
+            
+            // Si ya hay 3 seleccionadas, aplicar romper 3
+            if (gameState.break3Selection.length === 3) {
+                applyBreak3();
+            }
+        }
+
+        // RESOLUCIÓN DE LA SELECCIÓN ACTUAL
+        function resolveSelection() {
+            if (gameState.selectedTiles.length < 2) return;
+            
+            // Guardar estado actual para deshacer
+            saveState();
+            
+            // Calcular valor final y puntuación
+            const finalValue = calculateFinalValue(gameState.selectedTiles);
+            const points = finalValue * gameState.selectedTiles.length;
+            gameState.score += points;
+            
+            // Eliminar todas las fichas seleccionadas excepto la última
+            const lastTile = gameState.selectedTiles[gameState.selectedTiles.length - 1];
+            
+            for (const tile of gameState.selectedTiles) {
+                if (tile !== lastTile) {
+                    gameState.board[tile.row][tile.col] = 0;
+                }
+            }
+            
+            // La última ficha se convierte en el valor final
+            gameState.board[lastTile.row][lastTile.col] = finalValue;
+            
+            // Aplicar gravedad
+            applyGravity();
+            
+            // Rellenar el tablero
+            refillBoard();
+            
+            // Limpiar selección y camino
+            gameState.selectedTiles = [];
+            gameState.connectionPath = [];
+            
+            // Verificar si hay movimientos posibles
+            gameState.gameOver = !hasMoves();
+            
+            // Actualizar mejor puntuación
+            if (gameState.score > gameState.bestScore) {
+                gameState.bestScore = gameState.score;
+            }
+            
+            // Actualizar UI y guardar estado
+            renderBoard();
+            updateUI();
+            saveGameState();
+            
+            // Mostrar mensaje de puntos ganados
+            showMessage(`+${points} puntos!`);
+            
+            // Si no hay movimientos, activar romper 3
+            if (gameState.gameOver) {
+                showMessage("¡No hay movimientos posibles! Usa 'Romper 3' para continuar.");
+                break3Button.disabled = false;
+            }
+        }
+
+        // APLICAR GRAVEDAD (CAÍDA DE FICHAS)
+        function applyGravity() {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                let emptySpaces = 0;
+                
+                // Contar espacios vacíos desde abajo hacia arriba
+                for (let row = BOARD_SIZE - 1; row >= 0; row--) {
+                    if (gameState.board[row][col] === 0) {
+                        emptySpaces++;
+                    } else if (emptySpaces > 0) {
+                        // Mover ficha hacia abajo
+                        gameState.board[row + emptySpaces][col] = gameState.board[row][col];
+                        gameState.board[row][col] = 0;
+                    }
+                }
+            }
+        }
+
+        // RELLENAR EL TABLERO CON NUEVAS FICHAS
+        function refillBoard() {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    if (gameState.board[row][col] === 0) {
+                        gameState.board[row][col] = generateTile();
+                    }
+                }
+            }
+        }
+
+        // VERIFICAR SI HAY MOVIMIENTOS POSIBLES
+        function hasMoves() {
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const tileValue = gameState.board[row][col];
+                    if (tileValue === 0) continue;
+                    
+                    // Verificar todos los vecinos
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            
+                            const newRow = row + dr;
+                            const newCol = col + dc;
+                            
+                            if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
+                                const neighbourValue = gameState.board[newRow][newCol];
+                                if (neighbourValue !== 0 && canConnect(tileValue, neighbourValue)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+
+        // USAR HABILIDAD ROMBER 3
+        function useBreak3() {
+            if (gameState.break3Count === 0 || !gameState.gameOver) return;
+            
+            gameState.isBreak3Active = true;
+            gameState.break3Selection = [];
+            showMessage("Selecciona 3 fichas para eliminar");
+            break3Button.disabled = true;
+        }
+
+        // APLICAR ROMBER 3
+        function applyBreak3() {
+            if (gameState.break3Selection.length !== 3) return;
+            
+            // Guardar estado actual para deshacer
+            saveState();
+            
+            // Eliminar fichas seleccionadas
+            for (const tile of gameState.break3Selection) {
+                gameState.board[tile.row][tile.col] = 0;
+            }
+            
+            // Aplicar gravedad
+            applyGravity();
+            
+            // Rellenar el tablero
+            refillBoard();
+            
+            // Actualizar contadores
+            gameState.break3Count--;
+            gameState.isBreak3Active = false;
+            gameState.break3Selection = [];
+            gameState.gameOver = !hasMoves();
+            
+            // Actualizar UI y guardar estado
+            renderBoard();
+            updateUI();
+            saveGameState();
+            
+            showMessage("3 fichas eliminadas");
+        }
+
+        // USAR HABILIDAD ROMBER 6
+        function useBreak6() {
+            if (gameState.break6Count === 0) return;
+            
+            // Guardar estado actual para deshacer
+            saveState();
+            
+            // Encontrar 6 fichas aleatorias para eliminar
+            const tilesToRemove = [];
+            for (let i = 0; i < 6; i++) {
+                let row, col;
+                do {
+                    row = Math.floor(Math.random() * BOARD_SIZE);
+                    col = Math.floor(Math.random() * BOARD_SIZE);
+                } while (gameState.board[row][col] === 0 || 
+                         tilesToRemove.some(tile => tile.row === row && tile.col === col));
+                
+                tilesToRemove.push({ row, col });
+            }
+            
+            // Eliminar fichas seleccionadas
+            for (const tile of tilesToRemove) {
+                gameState.board[tile.row][tile.col] = 0;
+            }
+            
+            // Aplicar gravedad
+            applyGravity();
+            
+            // Rellenar el tablero
+            refillBoard();
+            
+            // Actualizar contadores
+            gameState.break6Count--;
+            gameState.gameOver = !hasMoves();
+            
+            // Actualizar UI y guardar estado
+            renderBoard();
+            updateUI();
+            saveGameState();
+            
+            showMessage("6 fichas eliminadas al azar");
+        }
+
+        // DESHACER ÚLTIMO MOVIMIENTO
+        function undo() {
+            if (gameState.undoCount === 0 || gameState.undoStack.length === 0) return;
+            
+            const previousState = gameState.undoStack.pop();
+            gameState.board = previousState.board;
+            gameState.score = previousState.score;
+            gameState.selectedTiles = [];
+            gameState.connectionPath = [];
+            gameState.undoCount--;
+            gameState.gameOver = !hasMoves();
+            
+            // Actualizar UI y guardar estado
+            renderBoard();
+            updateUI();
+            saveGameState();
+            
+            showMessage("Movimiento deshecho");
+        }
+
+        // CAMBIAR DIFICULTAD
+        function changeDifficulty(difficulty) {
+            gameState.difficulty = difficulty;
+            updateUI();
+            saveGameState();
+            showMessage(`Dificultad cambiada a ${difficulty}`);
+        }
+
+        // REINICIAR JUEGO
+        function restartGame() {
+            if (confirm("¿Estás seguro de que quieres reiniciar el juego?")) {
+                gameState.board = [];
+                gameState.score = 0;
+                gameState.selectedTiles = [];
+                gameState.connectionPath = [];
+                gameState.undoStack = [];
+                gameState.undoCount = MAX_UNDO_USES;
+                gameState.break3Count = MAX_BREAK3_USES;
+                gameState.break6Count = MAX_BREAK6_USES;
+                gameState.gameOver = false;
+                gameState.isBreak3Active = false;
+                gameState.break3Selection = [];
+                gameState.startTime = Date.now();
+                gameState.gameTime = 0;
+                
+                initializeBoard();
+                renderBoard();
+                updateUI();
+                saveGameState();
+                
+                showMessage("Juego reiniciado");
+            }
+        }
+
+        // GUARDAR ESTADO ACTUAL PARA DESHACER
+        function saveState() {
+            // Solo guardar hasta 3 estados para deshacer
+            if (gameState.undoStack.length >= MAX_UNDO_USES) {
+                gameState.undoStack.shift();
+            }
+            
+            // Guardar copia profunda del estado actual
+            gameState.undoStack.push({
+                board: JSON.parse(JSON.stringify(gameState.board)),
+                score: gameState.score,
+                break3Count: gameState.break3Count,
+                break6Count: gameState.break6Count
+            });
+        }
+
+        // GUARDAR ESTADO DEL JUEGO EN LOCALSTORAGE
+        function saveGameState() {
+            const stateToSave = {
+                board: gameState.board,
+                score: gameState.score,
+                bestScore: gameState.bestScore,
+                difficulty: gameState.difficulty,
+                undoCount: gameState.undoCount,
+                break3Count: gameState.break3Count,
+                break6Count: gameState.break6Count,
+                undoStack: gameState.undoStack,
+                startTime: gameState.startTime,
+                gameTime: gameState.gameTime
+            };
+            
+            localStorage.setItem('numberConnectGameState', JSON.stringify(stateToSave));
+            
+            // Guardar también la mejor puntuación por dificultad
+            const bestScores = JSON.parse(localStorage.getItem('numberConnectBestScores') || '{}');
+            bestScores[gameState.difficulty] = Math.max(
+                bestScores[gameState.difficulty] || 0,
+                gameState.bestScore
+            );
+            localStorage.setItem('numberConnectBestScores', JSON.stringify(bestScores));
+        }
+
+        // CARGAR ESTADO DEL JUEGO DESDE LOCALSTORAGE
+        function loadGameState() {
+            const savedState = localStorage.getItem('numberConnectGameState');
+            const bestScores = JSON.parse(localStorage.getItem('numberConnectBestScores') || '{}');
+            
+            if (savedState) {
+                const parsedState = JSON.parse(savedState);
+                gameState.board = parsedState.board || [];
+                gameState.score = parsedState.score || 0;
+                gameState.bestScore = parsedState.bestScore || 0;
+                gameState.difficulty = parsedState.difficulty || 'easy';
+                gameState.undoCount = parsedState.undoCount !== undefined ? parsedState.undoCount : MAX_UNDO_USES;
+                gameState.break3Count = parsedState.break3Count !== undefined ? parsedState.break3Count : MAX_BREAK3_USES;
+                gameState.break6Count = parsedState.break6Count !== undefined ? parsedState.break6Count : MAX_BREAK6_USES;
+                gameState.undoStack = parsedState.undoStack || [];
+                gameState.startTime = parsedState.startTime || Date.now();
+                gameState.gameTime = parsedState.gameTime || 0;
+                
+                // Cargar mejor puntuación para la dificultad actual
+                if (bestScores[gameState.difficulty]) {
+                    gameState.bestScore = Math.max(gameState.bestScore, bestScores[gameState.difficulty]);
+                }
+            } else {
+                // Estado por defecto
+                gameState.bestScore = bestScores[gameState.difficulty] || 0;
+            }
+        }
+
+        // MOSTRAR MENSAJE TEMPORAL
+        function showMessage(text) {
+            messageElement.textContent = text;
+            messageElement.classList.add('show');
+            
+            setTimeout(() => {
+                messageElement.classList.remove('show');
+            }, 3000);
+        }
+
+        // INICIAR EL JUEGO CUANDO SE CARGA LA PÁGINA
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
